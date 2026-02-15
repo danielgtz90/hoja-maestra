@@ -1,0 +1,35 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Node modules (si agregas Node.js en el futuro)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build files (si generas builds)
+dist/
+build/
+
+# Temporal
+*.tmp
+*.log
+
+# Archivos de prueba
+test/
+*.test.js
+
+# Iconos locales (ya usamos Dropbox)
+icon-192.png
+icon-512.png
+
+# Screenshots temporales
+screenshot-*.png
