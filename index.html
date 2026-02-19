@@ -391,29 +391,38 @@
 
         @media print {
             @page {
-                size: Letter;
-                margin: 8mm;
+                size: Letter portrait;
+                margin: 4mm 5mm;
+                /*
+                  Letter = 215.9 × 279.4mm
+                  With zoom:0.73 on body:
+                    Sheet 1 (364.9mm → 266mm): fits ✓
+                    Sheet 2 (299.0mm → 218mm): fits ✓
+                    Width (215mm → 157mm): fits in 205mm ✓
+                */
+            }
+
+            html {
+                /* zoom scales layout + content together — the reliable way to fit tall sheets */
+                zoom: 0.73;
             }
 
             html,
             body {
-                background: white;
-                margin: 0;
-                padding: 0;
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-                /* NO zoom — evita distorsión global */
             }
 
             .sheet {
-                margin: 0;
-                box-shadow: none;
-                width: 100%;
-                max-width: none;
-                padding: 6px;
+                margin: 0 auto !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                /* Each .sheet gets its own page */
                 page-break-after: always;
-                border-radius: 0;
-                overflow: visible;
+                break-after: page;
             }
 
             .no-print {
@@ -422,6 +431,7 @@
 
             .page-break {
                 page-break-before: always;
+                break-before: page;
                 height: 0;
             }
 
@@ -433,7 +443,7 @@
                 padding: 0;
             }
 
-            /* Resetear pan/zoom de imágenes para impresión limpia */
+            /* Reset pan/zoom de imágenes al imprimir */
             .upload-area {
                 border: none !important;
                 background: transparent !important;
@@ -449,7 +459,6 @@
 
             .upload-area img {
                 display: block !important;
-                /* Resetear transformaciones (zoom/pan) al imprimir */
                 transform: none !important;
                 max-width: 100% !important;
                 max-height: 100% !important;
@@ -457,6 +466,19 @@
                 height: auto !important;
                 object-fit: contain !important;
                 position: static !important;
+            }
+
+            /* Ocultar UI: sidebar, dashboard, modales */
+            #dashboard,
+            #sidebar,
+            #magic-modal,
+            #cotizadorModalContainer,
+            #history-modal,
+            #globalSettingsModalOverlay,
+            #formulasModal,
+            .modal-overlay,
+            .img-delete-btn {
+                display: none !important;
             }
         }
 
@@ -1371,7 +1393,8 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 
     <!-- GLOBAL UTILITIES & CONSTANTS -->
-    <script>
+    <script src="app-utils.js"></script>
+    <script><!-- LEGACY INLINE (kept for safety, overridden by app-utils.js) -->
         // ========================================
         // GLOBAL CONSTANTS
         // ========================================
@@ -10903,20 +10926,11 @@
         });
     </script>
 
-    <script>
-        function showCotizadorModal() {
-            document.getElementById('cotizadorModalContainer').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-        function hideCotizadorModal() {
-            document.getElementById('cotizadorModalContainer').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-    </script>
+    <!-- cotizador bridge → moved to ui.js -->
 
-    <script>
-        // --- MANUAL AUTO-CALCULATION & LOCKING ---
-        function recalculateSpecsFromManualInputs(event) {
+    <script src="manual-calc.js"></script>
+    <script><!-- LEGACY PLACEHOLDER for manual auto-calc - now in manual-calc.js -->
+        function recalculateSpecsFromManualInputs_LEGACY(event) {
             try {
                 // 1. Dimensions Sync & Area
                 const sourceId = event ? event.target.getAttribute('data-id') : null;
@@ -11069,9 +11083,8 @@
         }
     </script>
 
-    <script>
-
-        function initShippingCalculations() {
+    <script><!-- shipping calc now in manual-calc.js -->
+        function initShippingCalculations_LEGACY() {
             try {
                 const updatePalletStats = () => {
                     const pcs = getNum('pcs-pack');
@@ -11313,9 +11326,9 @@
         </div>
     </div>
 
-    <script>
-        // Global Settings and Formulas Modal Functions
-        function openGlobalSettings() {
+    <script src="ui.js"></script>
+    <script><!-- global settings + formulas now in ui.js -->
+        function openGlobalSettings_LEGACY() {
             const settingsModal = document.getElementById('globalSettingsModalOverlay');
             if (settingsModal) {
                 // Initialize settings if not already done
@@ -11356,18 +11369,37 @@
             console.log('GENERAL_SETTINGS:', GENERAL_SETTINGS);
 
             // Populate settings form
-            const createInputGroup = (machine) => `<div class="flex gap-2 mt-2"><div class="flex-1"><label class="block text-xs text-gray-500">Ancho Máx.</label><input type="text" inputmode="decimal" value="${machine.maxWidth || ''}" class="w-full p-1 border rounded-md text-sm"></div><div class="flex-1"><label class="block text-xs text-gray-500">Alto Máx.</label><input type="text" inputmode="decimal" value="${machine.maxHeight || ''}" class="w-full p-1 border rounded-md text-sm"></div><div class="flex-1"><label class="block text-xs text-gray-500">Ancho Mín.</label><input type="text" inputmode="decimal" value="${machine.minWidth || ''}" class="w-full p-1 border rounded-md text-sm"></div><div class="flex-1"><label class="block text-xs text-gray-500">Alto Mín.</label><input type="text" inputmode="decimal" value="${machine.minHeight || ''}" class="w-full p-1 border rounded-md text-sm"></div></div>`;
+            const createInputGroup = (machine) => `<div class="flex gap-2 mt-2">
+        <div class="flex-1"><label class="block text-xs text-gray-500">Ancho Máx.</label><input type="text"
+                inputmode="decimal" value="${machine.maxWidth || ''}" class="w-full p-1 border rounded-md text-sm">
+        </div>
+        <div class="flex-1"><label class="block text-xs text-gray-500">Alto Máx.</label><input type="text"
+                inputmode="decimal" value="${machine.maxHeight || ''}" class="w-full p-1 border rounded-md text-sm">
+        </div>
+        <div class="flex-1"><label class="block text-xs text-gray-500">Ancho Mín.</label><input type="text"
+                inputmode="decimal" value="${machine.minWidth || ''}" class="w-full p-1 border rounded-md text-sm">
+        </div>
+        <div class="flex-1"><label class="block text-xs text-gray-500">Alto Mín.</label><input type="text"
+                inputmode="decimal" value="${machine.minHeight || ''}" class="w-full p-1 border rounded-md text-sm">
+        </div>
+    </div>`;
 
             const dieCutterContainer = document.getElementById('dieCutterSettingsContainer');
             const printerContainer = document.getElementById('printerSettingsContainer');
 
             if (typeof PROCESS_MACHINES !== 'undefined' && PROCESS_MACHINES) {
                 if (dieCutterContainer && PROCESS_MACHINES.DIE_CUTTERS) {
-                    dieCutterContainer.innerHTML = PROCESS_MACHINES.DIE_CUTTERS.map(m => `<div class="p-3 bg-gray-50 rounded-lg" data-machine-name="${m.name}" data-machine-type="DIE_CUTTERS"><p class="font-semibold">${m.name}</p>${createInputGroup(m)}</div>`).join('');
+                    dieCutterContainer.innerHTML = PROCESS_MACHINES.DIE_CUTTERS.map(m => `<div class="p-3 bg-gray-50 rounded-lg"
+        data-machine-name="${m.name}" data-machine-type="DIE_CUTTERS">
+        <p class="font-semibold">${m.name}</p>${createInputGroup(m)}
+    </div>`).join('');
                     console.log('Die cutters populated:', PROCESS_MACHINES.DIE_CUTTERS.length);
                 }
                 if (printerContainer && PROCESS_MACHINES.PRINTERS) {
-                    printerContainer.innerHTML = PROCESS_MACHINES.PRINTERS.map(m => `<div class="p-3 bg-gray-50 rounded-lg" data-machine-name="${m.name}" data-machine-type="PRINTERS"><p class="font-semibold">${m.name}</p>${createInputGroup(m)}</div>`).join('');
+                    printerContainer.innerHTML = PROCESS_MACHINES.PRINTERS.map(m => `<div class="p-3 bg-gray-50 rounded-lg"
+        data-machine-name="${m.name}" data-machine-type="PRINTERS">
+        <p class="font-semibold">${m.name}</p>${createInputGroup(m)}
+    </div>`).join('');
                     console.log('Printers populated:', PROCESS_MACHINES.PRINTERS.length);
                 }
             }
@@ -11430,10 +11462,9 @@
         });
     </script>
 
-    <!-- Dynamic Caliper Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Function to setup dynamic caliper logic
+    <!-- Dynamic Caliper + Client Autocomplete → now in manual-calc.js -->
+    <script><!-- LEGACY caliper placeholder -->
+        document.addEventListener('DOMContentLoaded_LEGACY', function () {
             function setupDynamicCaliper(paperSelector, caliperSelector) {
                 const paperEl = typeof paperSelector === 'string' ? document.querySelector(paperSelector) : paperSelector;
                 const caliperEl = typeof caliperSelector === 'string' ? document.querySelector(caliperSelector) : caliperSelector;
@@ -11566,60 +11597,8 @@
     <script src="data-manager.js"></script>
     <script src="historial-controller.js"></script>
     <script src="pdf-importer.js"></script>
-    <script>
-        // Init MTY1 Importer
-        // NOW GLOBAL
-        window.mty1Importer = null;
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Initializing MTY1 Importer...');
-            window.mty1Importer = new MTY1Importer();
-
-            const fileInput = document.getElementById('mty1-upload');
-            if (fileInput) {
-                fileInput.addEventListener('change', (e) => window.mty1Importer.handleFile(e));
-            }
-        });
-
-        // =====================================================
-        // PRINT FIX: Resetear zoom/pan de imágenes al imprimir
-        // =====================================================
-        const _printImageStates = [];
-
-        window.addEventListener('beforeprint', function () {
-            _printImageStates.length = 0;
-            // Resetear todos los <img> dentro de .upload-area
-            document.querySelectorAll('.upload-area img').forEach(function (img) {
-                _printImageStates.push({
-                    img: img,
-                    transform: img.style.transform,
-                    maxWidth: img.style.maxWidth,
-                    maxHeight: img.style.maxHeight,
-                    width: img.style.width,
-                    height: img.style.height,
-                    position: img.style.position
-                });
-                img.style.transform = 'none';
-                img.style.maxWidth = '100%';
-                img.style.maxHeight = '100%';
-                img.style.width = 'auto';
-                img.style.height = 'auto';
-                img.style.position = 'static';
-            });
-        });
-
-        window.addEventListener('afterprint', function () {
-            // Restaurar estado original de las imágenes
-            _printImageStates.forEach(function (state) {
-                state.img.style.transform = state.transform;
-                state.img.style.maxWidth = state.maxWidth;
-                state.img.style.maxHeight = state.maxHeight;
-                state.img.style.width = state.width;
-                state.img.style.height = state.height;
-                state.img.style.position = state.position;
-            });
-            _printImageStates.length = 0;
-        });
-    </script>
+    <script src="init.js"></script>
+    <!-- init block now in init.js -->
 </body>
 
 </html>
