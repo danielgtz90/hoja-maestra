@@ -351,6 +351,44 @@
             display: none;
         }
 
+        /* Delete image button */
+        .img-delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            z-index: 20;
+            background: rgba(220, 38, 38, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: background 0.2s, transform 0.15s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        }
+
+        .img-delete-btn:hover {
+            background: rgba(185, 28, 28, 1);
+            transform: scale(1.15);
+        }
+
+        .upload-area:hover .img-delete-btn.visible {
+            display: flex;
+        }
+
+        @media print {
+            .img-delete-btn {
+                display: none !important;
+            }
+        }
+
         @media print {
             @page {
                 size: Letter;
@@ -931,122 +969,337 @@
 <body>
     <!-- DASHBOARD (Visible on Load) -->
     <div id="dashboard"
-        style="background: #0a1628; background: linear-gradient(135deg, #0a1628 0%, #1a2744 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px;">
-        <div class="dashboard-container" style="max-width: 900px; width: 100%; padding: 0;">
-            <div class="logo-section" style="text-align: center; margin-bottom: 15px;">
+        style="background: linear-gradient(135deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+        <style>
+            /* ===== BENTO GRID DASHBOARD ===== */
+            .bento-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: auto auto auto;
+                gap: 14px;
+                max-width: 860px;
+                width: 100%;
+            }
+
+            /* Card base */
+            .bento-card {
+                background: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 20px;
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                padding: 24px;
+                transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                position: relative;
+                overflow: hidden;
+            }
+
+            /* Hero card — Logos + Title spans all 3 cols */
+            .bento-hero {
+                grid-column: span 3;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 24px;
+                padding: 28px 36px;
+                background: rgba(10, 132, 255, 0.08);
+                border-color: rgba(10, 132, 255, 0.2);
+            }
+
+            .bento-hero::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(10, 132, 255, 0.6) 50%, transparent);
+            }
+
+            .bento-hero-center {
+                text-align: center;
+                flex: 1;
+            }
+
+            .bento-hero h1 {
+                font-family: 'Bebas Neue', Impact, sans-serif;
+                font-size: 52px;
+                font-weight: 400;
+                color: #ffffff;
+                margin: 0 0 4px 0;
+                letter-spacing: 4px;
+                text-transform: uppercase;
+                text-shadow: 0 2px 20px rgba(0, 122, 255, 0.3);
+                line-height: 1;
+            }
+
+            .bento-hero h2 {
+                font-size: 13px;
+                font-weight: 700;
+                color: #0a84ff;
+                letter-spacing: 5px;
+                text-transform: uppercase;
+                margin: 0;
+            }
+
+            /* Action cards */
+            .bento-action {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: space-between;
+                min-height: 150px;
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .bento-action:hover {
+                transform: translateY(-4px);
+                border-color: rgba(10, 132, 255, 0.4);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(10, 132, 255, 0.15);
+                background: rgba(10, 132, 255, 0.1);
+            }
+
+            .bento-action:active {
+                transform: translateY(-1px);
+            }
+
+            /* Primary action (Nueva Hoja) — spans 2 cols */
+            .bento-primary {
+                grid-column: span 2;
+                background: rgba(10, 132, 255, 0.12);
+                border-color: rgba(10, 132, 255, 0.3);
+            }
+
+            .bento-primary:hover {
+                background: rgba(10, 132, 255, 0.2) !important;
+            }
+
+            /* Utilities card */
+            .bento-utils {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                min-height: 150px;
+            }
+
+            .bento-util-row {
+                display: flex;
+                gap: 20px;
+                align-items: center;
+            }
+
+            /* Icon pill */
+            .bento-icon-pill {
+                width: 52px;
+                height: 52px;
+                border-radius: 14px;
+                background: rgba(10, 132, 255, 0.15);
+                border: 1px solid rgba(10, 132, 255, 0.2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                transition: all 0.25s;
+            }
+
+            /* Version card */
+            .bento-version {
+                grid-column: span 3;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 14px 24px;
+                min-height: unset;
+                background: rgba(255, 255, 255, 0.02);
+                border-color: rgba(255, 255, 255, 0.05);
+            }
+
+            /* Action card label styling */
+            .bento-label {
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: rgba(255, 255, 255, 0.4);
+                margin-bottom: 8px;
+            }
+
+            .bento-title {
+                font-size: 22px;
+                font-weight: 700;
+                color: #ffffff;
+                letter-spacing: -0.3px;
+                line-height: 1.2;
+            }
+
+            .bento-subtitle {
+                font-size: 13px;
+                color: rgba(255, 255, 255, 0.5);
+                margin-top: 4px;
+            }
+
+            .bento-arrow {
+                font-size: 22px;
+                color: rgba(10, 132, 255, 0.7);
+                font-weight: 300;
+                transition: transform 0.25s;
+            }
+
+            .bento-action:hover .bento-arrow {
+                transform: translateX(5px);
+            }
+
+            .bento-util-btn {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+                cursor: pointer;
+                transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+                background: none;
+                border: none;
+                padding: 0;
+            }
+
+            .bento-util-btn:hover {
+                transform: translateY(-5px);
+            }
+
+            .bento-util-btn:hover .bento-icon-pill {
+                background: rgba(10, 132, 255, 0.3);
+                border-color: rgba(10, 132, 255, 0.5);
+            }
+
+            .bento-util-label {
+                font-size: 10px;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.4);
+                letter-spacing: 1px;
+                text-transform: uppercase;
+            }
+
+            /* Shiny corner accent */
+            .bento-card::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 80px;
+                height: 80px;
+                border-radius: 0 20px 0 80px;
+                background: radial-gradient(circle at top right, rgba(10, 132, 255, 0.12), transparent 70%);
+                pointer-events: none;
+            }
+
+            @media (max-width: 640px) {
+                .bento-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .bento-hero,
+                .bento-primary,
+                .bento-version {
+                    grid-column: span 1 !important;
+                }
+
+                .bento-hero {
+                    flex-direction: column;
+                    text-align: center;
+                }
+
+                .bento-hero h1 {
+                    font-size: 36px;
+                }
+            }
+        </style>
+
+        <div class="bento-grid">
+
+            <!-- ① HERO: Logos + Título -->
+            <div class="bento-card bento-hero">
+                <!-- Logo Smurfit Westrock -->
                 <img src="https://www.dropbox.com/scl/fi/vlg771i5bfvb10whpvs5h/Logo-SmurfitWestrock-Blanco.png?rlkey=wzupayno47724qyxuqk3go3yd&st=wyki7giu&raw=1"
                     alt="Smurfit Westrock"
-                    style="width: 240px; height: auto; margin: 0 auto 32px auto; display: block; filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.1)); object-fit: contain;">
+                    style="width: 160px; height: auto; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(255,255,255,0.1)); flex-shrink: 0;">
 
-                <h1
-                    style="font-family: 'Bebas Neue', Impact, sans-serif; font-size: 72px; font-weight: 400; color: #ffffff; margin-bottom: 8px; letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 2px 20px rgba(0, 122, 255, 0.3);">
-                    Consumer Packaging
-                </h1>
-                <h2
-                    style="font-size: 20px; font-weight: 600; color: #0a84ff; letter-spacing: 4px; text-transform: uppercase;">
-                    Monterrey
-                </h2>
+                <!-- Center Text -->
+                <div class="bento-hero-center">
+                    <h1>Consumer Packaging</h1>
+                    <h2>Monterrey</h2>
+                </div>
 
+                <!-- Logo SWMTY -->
                 <img src="https://www.dropbox.com/scl/fi/32dqe6qluik6zei01wss5/SWMTY.svg?rlkey=z7db7u373j3j0ocjrlwyg28rt&st=oibmkca4&raw=1"
                     alt="MTYW"
-                    style="width: 250px; height: auto; margin: 10px auto 0 auto; display: block; filter: drop-shadow(0 4px 12px rgba(10, 132, 255, 0.4));">
+                    style="width: 110px; height: auto; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(10, 132, 255, 0.4)); flex-shrink: 0;">
             </div>
 
-            <div
-                style="height: 2px; background: linear-gradient(90deg, transparent, #0a84ff 50%, transparent); margin: 15px auto; max-width: 400px;">
+            <!-- ② NUEVA MAESTRA (Full width — horizontal layout) -->
+            <div class="bento-card bento-action"
+                style="grid-column: span 3; flex-direction: row; align-items: center; justify-content: space-between; min-height: 110px; background: rgba(10, 132, 255, 0.12); border-color: rgba(10, 132, 255, 0.3);"
+                onclick="historialController.showTipoSelector()">
+                <div>
+                    <div class="bento-label">Acción Principal</div>
+                    <div class="bento-title" style="font-size:28px;">✨ Crear Nueva Maestra</div>
+                    <div class="bento-subtitle">Inicializa una nueva hoja técnica de empaque</div>
+                </div>
+                <div class="bento-arrow" style="font-size:32px; opacity:0.6;">→</div>
             </div>
 
-            <div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-bottom: 35px;">
-                <button onclick="historialController.showTipoSelector()"
-                    style="padding: 18px 48px; border: 3px solid #0a84ff; border-radius: 50px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; background: #0a84ff; color: #ffffff; min-width: 240px; box-shadow: 0 6px 20px rgba(10, 132, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);"
-                    onmouseover="this.style.transform='translateY(-6px)'; this.style.background='#0077ed'; this.style.boxShadow='0 10px 28px rgba(10, 132, 255, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.background='#0a84ff'; this.style.boxShadow='0 6px 20px rgba(10, 132, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';">
-                    Crear Nueva Maestra
-                </button>
-
-                <button onclick="historialController.showHistoryModal()"
-                    style="padding: 18px 48px; border: 3px solid #0a84ff; border-radius: 50px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; background: transparent; color: #ffffff; min-width: 240px; box-shadow: 0 4px 16px rgba(10, 132, 255, 0.2);"
-                    onmouseover="this.style.transform='translateY(-6px)'; this.style.background='rgba(10, 132, 255, 0.2)'; this.style.boxShadow='0 8px 24px rgba(10, 132, 255, 0.4)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.background='transparent'; this.style.boxShadow='0 4px 16px rgba(10, 132, 255, 0.2)';">
-                    Modificar Existente
-                </button>
-
-                <button onclick="showCotizadorModal()"
-                    style="padding: 18px 48px; border: 3px solid #0a84ff; border-radius: 50px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; background: transparent; color: #ffffff; min-width: 240px; box-shadow: 0 4px 16px rgba(10, 132, 255, 0.2);"
-                    onmouseover="this.style.transform='translateY(-6px)'; this.style.background='rgba(10, 132, 255, 0.2)'; this.style.boxShadow='0 8px 24px rgba(10, 132, 255, 0.4)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.background='transparent'; this.style.boxShadow='0 4px 16px rgba(10, 132, 255, 0.2)';">
-                    Cotizar
-                </button>
+            <!-- ③ MODIFICAR EXISTENTE -->
+            <div class="bento-card bento-action" onclick="historialController.showHistoryModal()">
+                <div>
+                    <div class="bento-label">Historial</div>
+                    <div class="bento-title" style="font-size:17px;">📚 Modificar Existente</div>
+                    <div class="bento-subtitle">Busca y edita hojas guardadas</div>
+                </div>
+                <div class="bento-arrow">→</div>
             </div>
 
-            <div style="display: flex; justify-content: center; gap: 40px; margin-top: 45px;">
-                <button onclick="openGlobalSettings()" title="Ajustes Globales"
-                    style="padding: 0; border: none; background: transparent; cursor: pointer; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; opacity: 0.7;"
-                    onmouseover="this.style.transform='translateY(-8px)'; this.style.opacity='1';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.opacity='0.7';">
-                    <svg style="width: 56px; height: 56px; filter: drop-shadow(0 4px 12px rgba(10, 132, 255, 0.3));"
-                        viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="gearGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#0a84ff;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#005bb5;stop-opacity:1" />
-                            </linearGradient>
-                            <radialGradient id="gearHighlight">
-                                <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4" />
-                                <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
-                            </radialGradient>
-                        </defs>
-                        <g>
-                            <circle cx="50" cy="50" r="30" fill="url(#gearGradient)" />
-                            <path
-                                d="M 50,20 L 54,25 L 46,25 Z M 80,50 L 75,54 L 75,46 Z M 50,80 L 46,75 L 54,75 Z M 20,50 L 25,46 L 25,54 Z M 68,32 L 71,36 L 65,36 Z M 68,68 L 65,64 L 71,64 Z M 32,68 L 36,64 L 36,71 Z M 32,32 L 36,36 L 36,29 Z"
-                                fill="url(#gearGradient)" stroke="#003d7a" stroke-width="1" />
-                            <circle cx="50" cy="50" r="12" fill="#003d7a" />
-                            <circle cx="50" cy="50" r="6" fill="#001f3d" />
-                            <ellipse cx="45" cy="45" rx="12" ry="12" fill="url(#gearHighlight)" />
-                        </g>
-                    </svg>
-                </button>
-
-                <button onclick="openFormulasDoc()" title="Fórmulas"
-                    style="padding: 0; border: none; background: transparent; cursor: pointer; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; opacity: 0.7;"
-                    onmouseover="this.style.transform='translateY(-8px)'; this.style.opacity='1';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.opacity='0.7';">
-                    <svg style="width: 56px; height: 56px; filter: drop-shadow(0 4px 12px rgba(10, 132, 255, 0.3));"
-                        viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="infoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#0a84ff;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#005bb5;stop-opacity:1" />
-                            </linearGradient>
-                            <radialGradient id="infoHighlight">
-                                <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.5" />
-                                <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
-                            </radialGradient>
-                        </defs>
-                        <g>
-                            <circle cx="50" cy="50" r="30" fill="url(#infoGradient)" />
-                            <circle cx="50" cy="50" r="30" fill="none" stroke="rgba(255,255,255,0.3)"
-                                stroke-width="2" />
-                            <g fill="#ffffff">
-                                <circle cx="50" cy="36" r="4" />
-                                <rect x="47" y="44" width="6" height="20" rx="1.5" />
-                            </g>
-                            <ellipse cx="44" cy="40" rx="14" ry="16" fill="url(#infoHighlight)" />
-                        </g>
-                    </svg>
-                </button>
+            <!-- ④ COTIZAR -->
+            <div class="bento-card bento-action" onclick="showCotizadorModal()">
+                <div>
+                    <div class="bento-label">Herramienta</div>
+                    <div class="bento-title" style="font-size:17px;">💰 Cotizar</div>
+                    <div class="bento-subtitle">Optimizador de máquinas e impresión</div>
+                </div>
+                <div class="bento-arrow">→</div>
             </div>
 
-            <div
-                style="text-align: center; margin-top: 55px; padding-top: 35px; border-top: 1px solid rgba(10, 132, 255, 0.2);">
+            <!-- ⑤ UTILIDADES (1 col) -->
+            <div class="bento-card bento-utils">
+                <div
+                    style="font-size:10px; font-weight:700; letter-spacing:2px; color:rgba(255,255,255,0.3); text-transform:uppercase; margin-bottom:4px;">
+                    Utilidades</div>
+                <div class="bento-util-row">
+                    <!-- Ajustes Globales -->
+                    <button class="bento-util-btn" onclick="openGlobalSettings()" title="Ajustes Globales">
+                        <div class="bento-icon-pill">⚙️</div>
+                        <span class="bento-util-label">Ajustes</span>
+                    </button>
+                    <!-- Fórmulas -->
+                    <button class="bento-util-btn" onclick="openFormulasDoc()" title="Fórmulas">
+                        <div class="bento-icon-pill">📐</div>
+                        <span class="bento-util-label">Fórmulas</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ⑥ VERSIÓN (full width) -->
+            <div class="bento-card bento-version">
                 <p
-                    style="font-size: 11px; color: #5a7fa6; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;">
-                    Versión 1.5 (Global Settings)
+                    style="font-size:11px; color:rgba(90,127,166,0.8); font-weight:600; letter-spacing:2px; text-transform:uppercase; margin:0;">
+                    Versión 1.6 &nbsp;·&nbsp; BentoGrid UI &nbsp;·&nbsp; Consumer Packaging Monterrey
                 </p>
             </div>
+
         </div>
     </div>
+
 
     <!-- SIDEBAR CONTROLS -->
     <div id="sidebar" class="no-print">
@@ -2842,6 +3095,9 @@
                     const text = container.querySelector('.upload-text');
                     if (text) text.style.display = 'none';
 
+                    // Show delete button
+                    _ensureDeleteBtn(container, imgId);
+
                     try {
                         localStorage.setItem('sw-img-' + imgId, e.target.result);
                     } catch (e) {
@@ -2850,6 +3106,62 @@
                 }
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        /** Inject or reveal the delete button inside an upload-area */
+        function _ensureDeleteBtn(container, imgId) {
+            let btn = container.querySelector('.img-delete-btn');
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.className = 'img-delete-btn no-print';
+                btn.innerHTML = '×';
+                btn.title = 'Borrar imagen';
+                // Stop click from triggering the label (file picker)
+                btn.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    clearImage(imgId);
+                });
+                container.appendChild(btn);
+            }
+            btn.classList.add('visible');
+        }
+
+        /** Clear a loaded image by its img ID */
+        function clearImage(imgId) {
+            const img = document.getElementById(imgId);
+            if (!img) return;
+
+            // Reset image
+            img.src = '';
+            img.style.display = 'none';
+            img.style.transform = '';
+            img.dataset.scale = 1;
+            img.dataset.x = 0;
+            img.dataset.y = 0;
+
+            // Show upload placeholder text again
+            const container = img.closest('.upload-area');
+            if (container) {
+                const text = container.querySelector('.upload-text');
+                if (text) text.style.display = '';
+
+                // Hide delete button
+                const btn = container.querySelector('.img-delete-btn');
+                if (btn) btn.classList.remove('visible');
+
+                // Reset file input so same file can be re-selected
+                const fileInput = container.querySelector('input[type="file"]');
+                if (fileInput) fileInput.value = '';
+
+                // Reset zoom slider
+                const zoomSlider = container.parentElement?.querySelector('input[type="range"]');
+                if (zoomSlider) zoomSlider.value = 1;
+            }
+
+            // Remove from localStorage
+            localStorage.removeItem('sw-img-' + imgId);
+            console.log('[clearImage] Imagen', imgId, 'eliminada.');
         }
 
         // --- 1.5 Auto-Carga de Imágenes desde Carpeta Local ---
@@ -3926,15 +4238,20 @@
             });
 
             // Restore Images
-            ['img-flat', 'img-barcode', 'img-ship', 'img-pallet1', 'img-pallet2', 'img-ext-dims', 'img-pallet-layout'].forEach(imgId => {
+            ['img-print', 'img-flat', 'img-barcode', 'img-piece', 'img-ship', 'img-pallet1', 'img-pallet2', 'img-ext-dims', 'img-pallet-layout'].forEach(imgId => {
                 const savedImg = localStorage.getItem('sw-img-' + imgId);
                 if (savedImg) {
                     const img = document.getElementById(imgId);
                     if (img) {
                         img.src = savedImg;
                         img.style.display = 'block';
-                        const text = img.parentElement.querySelector('.upload-text');
+                        const container = img.parentElement;
+                        const text = container.querySelector('.upload-text');
                         if (text) text.style.display = 'none';
+                        // Show delete button for restored images
+                        if (typeof _ensureDeleteBtn === 'function') {
+                            _ensureDeleteBtn(container, imgId);
+                        }
                     }
                 }
             });
