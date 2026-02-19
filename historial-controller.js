@@ -70,6 +70,160 @@ class HistorialController {
         }
     }
 
+    // ================================================
+    // MODAL DE HISTORIAL
+    // ================================================
+
+    showHistoryModal() {
+        console.log('[HistorialController] Opening history modal...');
+        const modal = document.getElementById('history-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.remove('hidden'); // Ensure hidden class is removed if present
+            this.switchHistoryTab('SAP'); // Default tab
+        } else {
+            console.error('[HistorialController] Modal with ID "history-modal" not found.');
+        }
+    }
+
+    hideHistoryModal() {
+        const modal = document.getElementById('history-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    switchHistoryTab(type) {
+        // Update tab styles
+        ['SAP', 'FAC', 'MAQ'].forEach(t => {
+            const btn = document.getElementById(`tab-${t.toLowerCase()}`);
+            const content = document.getElementById(`history-${t.toLowerCase()}`);
+
+            if (t === type) {
+                btn?.classList.add('border-blue-600', 'text-blue-600', 'bg-white');
+                btn?.classList.remove('border-transparent');
+                content?.classList.remove('hidden');
+            } else {
+                btn?.classList.remove('border-blue-600', 'text-blue-600', 'bg-white');
+                btn?.classList.add('border-transparent');
+                content?.classList.add('hidden');
+            }
+        });
+
+        // Render table
+        this.renderHistoryTable(type);
+    }
+
+    renderHistoryTable(type) {
+        const container = document.getElementById(`history-${type.toLowerCase()}`);
+        if (!container) return;
+
+        const hojas = this.dataManager.getAllHojas().filter(h => h.tipo === type);
+
+        if (hojas.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8">
+                    <p class="text-gray-500 mb-2">No hay hojas de tipo ${type} guardadas.</p>
+                    <p class="text-sm text-gray-400">Las hojas guardadas aparecerán aquí.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort by modification date desc
+        hojas.sort((a, b) => new Date(b.fecha_modificacion) - new Date(a.fecha_modificacion));
+
+        let html = `
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-3 border-b text-left text-xs font-semibold text-gray-600">ID</th>
+                            <th class="py-2 px-3 border-b text-left text-xs font-semibold text-gray-600">Cliente</th>
+                            <th class="py-2 px-3 border-b text-left text-xs font-semibold text-gray-600">Producto</th>
+                            <th class="py-2 px-3 border-b text-left text-xs font-semibold text-gray-600">Fecha Mod.</th>
+                            <th class="py-2 px-3 border-b text-left text-xs font-semibold text-gray-600">Estado</th>
+                            <th class="py-2 px-3 border-b text-center text-xs font-semibold text-gray-600">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+        `;
+
+        hojas.forEach(hoja => {
+            const date = new Date(hoja.fecha_modificacion).toLocaleDateString();
+            const estadoClass = hoja.estado === 'aprobada' ? 'bg-green-100 text-green-800' :
+                hoja.estado === 'finalizada' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800';
+
+            html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-3 text-xs font-medium text-gray-900">${hoja.id}</td>
+                    <td class="py-2 px-3 text-xs text-gray-700">${hoja.cliente || '-'}</td>
+                    <td class="py-2 px-3 text-xs text-gray-700">${hoja.producto || '-'}</td>
+                    <td class="py-2 px-3 text-xs text-gray-500">${date}</td>
+                    <td class="py-2 px-3 text-xs">
+                        <span class="px-2 py-1 rounded-full text-xxs font-semibold ${estadoClass}">
+                            ${hoja.estado.toUpperCase()}
+                        </span>
+                    </td>
+                    <td class="py-2 px-3 text-center space-x-1">
+                        <button onclick="historialController.loadAndClose('${hoja.id}')" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-xs transition-colors"
+                                title="Editar Hoja">
+                            Editar
+                        </button>
+                        <button onclick="historialController.exportHojaToExcel('${hoja.id}')" 
+                                class="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded text-xs transition-colors"
+                                title="Descargar Excel">
+                            ⬇️
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    loadAndClose(id) {
+        const hoja = this.dataManager.loadHoja(id);
+        if (hoja) {
+            this.loadHojaToForm(hoja);
+            this.hideHistoryModal();
+
+            // Usar la función global showSheet si existe, o replicar su lógica
+            if (typeof window.showSheet === 'function') {
+                window.showSheet();
+            } else {
+                console.warn('[HistorialController] showSheet no encontrado, usando fallback manual');
+                // Fallback manual basado en index.html
+                document.body.style.overflow = 'auto';
+
+                const dashboard = document.getElementById('dashboard');
+                if (dashboard) dashboard.classList.add('hidden');
+
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) sidebar.classList.remove('hidden');
+
+                document.querySelectorAll('.sheet').forEach(el => el.classList.remove('hidden'));
+                const pageBreak = document.querySelector('.page-break');
+                if (pageBreak) pageBreak.classList.remove('hidden');
+
+                window.scrollTo(0, 0);
+            }
+
+            // Ensure sidebar is visible (extra check)
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.style.display = 'flex';
+        }
+    }
+
     handleTipoChange(tipo) {
         this.hideAllConditionalInputs();
 
@@ -147,7 +301,7 @@ class HistorialController {
         }
     }
 
-    createNewHoja(tipo, id) {
+    createNewHoja(tipo, id, skipModal = false) {
         // Crear estructura vacía
         const newHoja = this.dataManager.createEmptyHoja(tipo, id);
 
@@ -175,7 +329,8 @@ class HistorialController {
         this.updateLastSaved('Nueva hoja - Sin guardar');
 
         // ABRIR INICIALIZACIÓN RÁPIDA (Solicitud del usuario)
-        if (typeof startNewMasterManual === 'function') {
+        // Solo si no se solicita omitir (ej. importación PDF)
+        if (!skipModal && typeof startNewMasterManual === 'function') {
             setTimeout(() => {
                 startNewMasterManual(id);
             }, 100);
@@ -425,19 +580,162 @@ class HistorialController {
             alert('No hay una hoja activa para exportar');
             return;
         }
+        // Reutilizar la lógica de exportación
+        this.exportHojaToExcel(this.currentHojaId);
+    }
 
+    exportHojaToExcel(id) {
         try {
-            const hojaData = this.captureFormData();
-            hojaData.id = this.currentHojaId;
-            hojaData.tipo = this.currentTipo;
+            const hoja = this.dataManager.loadHoja(id);
+            if (!hoja) {
+                alert('Error al cargar los datos de la hoja.');
+                return;
+            }
 
-            // Exportar usando SheetJS (implementar en siguiente fase)
-            console.log('[HistorialController] Exportar a Excel:', hojaData);
-            alert('Funcionalidad de exportación en desarrollo');
+            // Define keys and headers in desired order
+            // keys correspond to 'data-id' in index.html (mostly)
+            // or internal keys if dataManager saves them differently
+            const exportMap = [
+                // --- GENERAL ---
+                { header: 'ID (SAP)', key: 'sap-1' }, // sap_code
+                { header: 'Cliente', key: 'client' },
+                { header: 'Articulo', key: 'article' },
+                { header: 'Fecha Ingreso', key: 'date-1' },
+                { header: 'Fecha Doc', key: 'date-doc' },
+
+                // --- MATERIAL ---
+                { header: 'Clase Material', key: 'mat-class' },
+                { header: 'Tipo Papel', key: 'mat-paper' },
+                { header: 'Area Pieza', key: 'mat-area' },
+                { header: 'Calibre', key: 'caliper' },
+                { header: 'Gramaje', key: 'gsm' },
+                { header: 'Flauta', key: 'flute' },
+                { header: 'Dim. Papel', key: 'paper-dim' },
+                { header: 'Ancho Rollo', key: 'roll-width' },
+                { header: 'Liner Int', key: 'l-int' },
+                { header: 'Medium', key: 'medium' },
+                { header: 'Liner Ext', key: 'l-ext' },
+                { header: 'ECT', key: 'ect' },
+
+                // --- DIMENSIONES INT ---
+                { header: 'Largo Int', key: 'dim-l' },
+                { header: 'Ancho Int', key: 'dim-w' },
+                { header: 'Alto Int', key: 'dim-h' },
+                { header: 'Area Total', key: 'area-total' },
+                { header: 'Area Efectiva', key: 'area-eff' },
+                { header: 'Merma', key: 'waste' },
+                { header: 'Peso Bruto', key: 'w-gross' },
+                { header: 'Peso Neto', key: 'w-net' },
+
+                // --- IMPRESION ---
+                { header: 'Impresora', key: 'printer' },
+                { header: 'Sentido Hilo (Imp)', key: 'grain-print' },
+                { header: 'Tinta 1', key: 'ink1' }, { header: 'SAP T1', key: 'sap1' },
+                { header: 'Tinta 2', key: 'ink2' }, { header: 'SAP T2', key: 'sap2' },
+                { header: 'Tinta 3', key: 'ink3' }, { header: 'SAP T3', key: 'sap3' },
+                { header: 'Tinta 4', key: 'ink4' }, { header: 'SAP T4', key: 'sap4' },
+                { header: 'Tinta 5', key: 'ink5' }, { header: 'SAP T5', key: 'sap5' },
+                { header: 'Tinta 6', key: 'ink6' }, { header: 'SAP T6', key: 'sap6' },
+                { header: 'Tinta 7', key: 'ink7' }, { header: 'SAP T7', key: 'sap7' },
+                { header: 'Tinta 8', key: 'ink8' }, { header: 'SAP T8', key: 'sap8' },
+                { header: 'Obs Impresion', key: 'obs-print' },
+
+                // --- TROQUELADO ---
+                { header: 'Troqueladora', key: 'die-machine' },
+                { header: '# Artios', key: 'artios' },
+                { header: 'Dim. Hilo', key: 'dim-grain' },
+                { header: 'Dim. Contra', key: 'dim-cross' },
+                { header: 'Piezas/Hoja', key: 'pcs-sheet' },
+                { header: 'Cinta Ref', key: 'tape' },
+                { header: 'Grosor', key: 'thickness' },
+                { header: 'Tipo Troquel', key: 'die-type' },
+                { header: 'Gap H', key: 'gap-h' },
+                { header: 'Gap V', key: 'gap-v' },
+                { header: 'Pinza', key: 'grip' },
+                { header: 'Contra Pinza', key: 'grip-back' },
+                { header: 'Escuadras', key: 'squares' },
+                { header: 'Obs Troquel', key: 'obs-die' },
+
+                // --- PEGADO ---
+                { header: 'Pegadora', key: 'gluer' },
+                { header: 'Tipo Pegado', key: 'glue-type' },
+                { header: 'Adhesivo', key: 'glue-name' },
+                { header: 'Obs Pegado', key: 'obs-glue' },
+
+                // --- EMPAQUE COLECTIVO ---
+                { header: 'Tipo Empaque', key: 'pack-type' },
+                { header: 'Flauta Empaque', key: 'pack-flute' },
+                { header: 'ECT Empaque', key: 'pack-ect' },
+                { header: 'Largo Empaque', key: 'pack-l' },
+                { header: 'Ancho Empaque', key: 'pack-w' },
+                { header: 'Alto Empaque', key: 'pack-h' },
+                { header: 'Pzas/Paquete', key: 'pcs-pack' },
+                { header: 'Paq/Cama', key: 'packs-layer' },
+                { header: 'Camas/Pallet', key: 'layers-pallet' },
+                { header: 'Total Piezas', key: 'total-pcs' },
+                { header: 'Instr. Empaque', key: 'pack-instr' },
+
+                // --- EMBARQUES ---
+                { header: 'Pzas/Contenedor', key: 'pcs-cont' },
+                { header: 'Pallets/Cont', key: 'pallets-cont' },
+                { header: 'Tam Contenedor', key: 'size-cont' }
+            ];
+
+            // Build Data Object
+            const rowData = {};
+
+            // Special handling for ID and internal metadata if not in 'data' object
+            // The dataManager structure: hoja = { id, tipo, ...data: { 'sap-1': '...', ... } }
+            // Or hoja itself has keys. Based on loadHoja, checks localStorage 'sw-data-'+id or 'hoja-'+id
+            // Let's assume hoja contains the flattened data or we need to merge.
+            // If loadHoja returns the full object with 'data' property?
+            // Checking DataManager... loadHoja(id) returns { id, timestamp, ...localStorageData }
+            // Actually, HojaMaestra saves individual fields to 'sw-data-FIELDID'. 
+            // DataManager.loadHoja might just return the metadata record.
+            // We need to reconstruct the full data from localStorage keys 'sw-data-' + key
+
+            exportMap.forEach(col => {
+                let val = '';
+
+                // 1. Try direct property on hoja object (e.g. id, fecha_modificacion)
+                if (hoja[col.key] !== undefined) val = hoja[col.key];
+
+                // 2. Try loading from localStorage 'sw-data-' persistence (Primary Source for fields)
+                // Note: The key in exportMap corresponds to 'data-id'
+                const storedVal = localStorage.getItem('sw-data-' + col.key);
+                if (storedVal !== null) val = storedVal;
+
+                // 3. Fallback for sap-1 if mapped from ID
+                if (col.key === 'sap-1' && !val) val = hoja.id || id;
+
+                rowData[col.header] = val;
+            });
+
+            // Metadata extra
+            rowData['Fecha Modificación'] = new Date(hoja.fecha_modificacion || Date.now()).toLocaleString();
+            rowData['Estado'] = hoja.estado || 'Activo';
+
+            // Create Workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet([rowData]);
+
+            // Auto-width columns
+            const wscols = Object.keys(rowData).map(k => ({ wch: Math.max(k.length + 5, 15) }));
+            ws['!cols'] = wscols;
+
+            XLSX.utils.book_append_sheet(wb, ws, "Hoja Maestra");
+
+            // Generate Filename
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const fileName = `Hoja_Maestra_${id}_${dateStr}.xlsx`;
+
+            // Download
+            XLSX.writeFile(wb, fileName);
+            console.log(`[HistorialController] Exportado a ${fileName}`);
 
         } catch (error) {
             console.error('[HistorialController] Error al exportar:', error);
-            alert('Error al exportar: ' + error.message);
+            alert('Error al exportar a Excel: ' + error.message);
         }
     }
 }

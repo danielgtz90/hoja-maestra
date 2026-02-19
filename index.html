@@ -353,16 +353,18 @@
 
         @media print {
             @page {
-                margin: 0;
+                size: Letter;
+                margin: 8mm;
             }
 
+            html,
             body {
                 background: white;
                 margin: 0;
                 padding: 0;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-                zoom: 0.98;
+                /* NO zoom — evita distorsión global */
             }
 
             .sheet {
@@ -370,14 +372,14 @@
                 box-shadow: none;
                 width: 100%;
                 max-width: none;
-                padding: 25px;
-                /* Margen interno aumentado para imprimir */
+                padding: 6px;
                 page-break-after: always;
                 border-radius: 0;
+                overflow: visible;
             }
 
             .no-print {
-                display: none;
+                display: none !important;
             }
 
             .page-break {
@@ -388,21 +390,35 @@
             input,
             textarea,
             select {
-                border: none;
-                background: transparent;
+                border: none !important;
+                background: transparent !important;
                 padding: 0;
             }
 
+            /* Resetear pan/zoom de imágenes para impresión limpia */
             .upload-area {
-                border: none;
+                border: none !important;
+                background: transparent !important;
+                overflow: hidden;
+                display: flex;
+                justify-content: center;
+                align-items: center;
             }
 
             .upload-text {
-                display: none;
+                display: none !important;
             }
 
             .upload-area img {
-                display: block;
+                display: block !important;
+                /* Resetear transformaciones (zoom/pan) al imprimir */
+                transform: none !important;
+                max-width: 100% !important;
+                max-height: 100% !important;
+                width: auto !important;
+                height: auto !important;
+                object-fit: contain !important;
+                position: static !important;
             }
         }
 
@@ -948,7 +964,7 @@
                     Crear Nueva Maestra
                 </button>
 
-                <button onclick="continueMaster()"
+                <button onclick="historialController.showHistoryModal()"
                     style="padding: 18px 48px; border: 3px solid #0a84ff; border-radius: 50px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; background: transparent; color: #ffffff; min-width: 240px; box-shadow: 0 4px 16px rgba(10, 132, 255, 0.2);"
                     onmouseover="this.style.transform='translateY(-6px)'; this.style.background='rgba(10, 132, 255, 0.2)'; this.style.boxShadow='0 8px 24px rgba(10, 132, 255, 0.4)';"
                     onmouseout="this.style.transform='translateY(0)'; this.style.background='transparent'; this.style.boxShadow='0 4px 16px rgba(10, 132, 255, 0.2)';">
@@ -1111,6 +1127,7 @@
             <!-- Hidden Input -->
             <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
         </div>
+
 
         <!-- Footer -->
         <div
@@ -1408,9 +1425,23 @@
                     </div>
                 </div>
 
-                <div class="modal-actions">
-                    <button type="button" id="btn-cancel-tipo" class="btn-secondary">Cancelar</button>
-                    <button type="submit" class="btn-primary">Continuar →</button>
+                <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+                    <div style="display: flex; gap: 12px; width: 100%;">
+                        <button type="button" id="btn-cancel-tipo" class="btn-secondary"
+                            style="flex: 1;">Cancelar</button>
+                        <button type="submit" class="btn-primary" style="flex: 1;">Continuar →</button>
+                    </div>
+
+                    <div style="text-align: center; border-top: 1px solid #eee; padding-top: 10px; margin-top: 5px;">
+                        <button type="button"
+                            onclick="if(window.mty1Importer) { window.mty1Importer.triggerUpload(); historialController.hideTipoSelector(); }"
+                            class="text-blue-600 font-medium hover:underline text-sm flex items-center justify-center gap-2"
+                            style="width: 100%; border: none; background: none; cursor: pointer; padding: 5px;">
+                            📄 Importar datos desde PDF (MTY1)
+                        </button>
+                        <!-- Hidden Input for PDF (Global) -->
+                        <input type="file" id="mty1-upload" accept=".pdf" style="display: none;">
+                    </div>
                 </div>
             </form>
         </div>
@@ -1887,12 +1918,12 @@
             </div>
 
             <!-- Metrics Grid -->
-            <div class="grid-12 border-b text-center text-xs">
+            <div class="grid-12 border-b text-center text-xs overflow-hidden">
                 <div class="span-1 border-r py-0.5 px-1">
                     <div class="font-bold text-xxs">ECT</div>
                     <input type="text" data-id="ect" value="" class="text-center font-bold text-lg">
                 </div>
-                <div class="span-4 border-r">
+                <div class="span-3 border-r">
                     <div class="bg-gray-200 font-bold border-b py-0.5 px-1 text-xxs">DIMENSIONES INTERNAS DE LA CAJA
                         (mm)</div>
                     <div class="grid-12 h-full">
@@ -1910,32 +1941,46 @@
                         </div>
                     </div>
                 </div>
-                <div class="span-2 border-r py-0.5 px-1">
-                    <div class="font-bold text-xxs">ÁREA TOTAL</div>
-                    <div class="flex justify-center items-center">
-                        <input type="text" data-id="area-total" value="" class="text-center w-12 font-bold"> M2
+                <!-- Flexible Container for Areas, Merma, Weights (Span 8) -->
+                <div class="span-8 flex p-0 h-full border-r overflow-hidden">
+
+                    <!-- Areas (30% of remaining space) -->
+                    <div class="border-r flex h-full" style="width: 30%;">
+                        <div class="w-1/2 border-r py-0.5 px-1 relative">
+                            <div class="font-bold text-xxs">Área Total</div>
+                            <div class="flex justify-center items-center">
+                                <input type="text" data-id="area-total" value="" class="text-center w-12 font-bold"
+                                    oninput="calculateWeights()"> <span class="text-xxs ml-0.5">M2</span>
+                            </div>
+                        </div>
+                        <div class="w-1/2 py-0.5 px-1 relative">
+                            <div class="font-bold text-xxs">AREA EFECTIVA</div>
+                            <input type="text" data-id="area-eff" value="" class="text-center font-bold w-full">
+                        </div>
                     </div>
-                </div>
-                <div class="span-2 border-r py-0.5 px-1">
-                    <div class="font-bold text-xxs">AREA EFECTIVA</div>
-                    <input type="text" data-id="area-eff" value="" class="text-center font-bold">
-                </div>
-                <div class="span-1 border-r py-0.5 px-1">
-                    <div class="font-bold text-xxs">MERMA</div>
-                    <input type="text" data-id="waste" value="" class="text-center font-bold">
-                </div>
-                <div class="span-1 border-r py-0.5 px-1 bg-gray-100">
-                    <div class="font-bold text-xxs">P. BRUTO</div>
-                    <div class="flex justify-center items-center">
-                        <input type="text" data-id="w-gross" value="" class="text-center font-bold w-10"> <span
-                            class="text-xxs ml-1">GR</span>
+
+                    <!-- Merma (14% of remaining space - slightly extended) -->
+                    <div class="border-r py-0.5 px-1 relative" style="width: 14%;">
+                        <div class="font-bold text-xxs">MERMA</div>
+                        <input type="text" data-id="waste" value="" class="text-center font-bold w-full">
                     </div>
-                </div>
-                <div class="span-1 py-0.5 px-1 bg-gray-100">
-                    <div class="font-bold text-xxs">P. NETO</div>
-                    <div class="flex justify-center items-center">
-                        <input type="text" data-id="w-net" value="" class="text-center font-bold w-10"> <span
-                            class="text-xxs ml-1">GR</span>
+
+                    <!-- P. Bruto (28%) -->
+                    <div class="border-r py-0.5 px-1 bg-gray-100 relative" style="width: 28%;">
+                        <div class="font-bold text-xxs">P. BRUTO</div>
+                        <div class="flex justify-center items-center">
+                            <input type="text" data-id="w-gross" value="" class="text-center font-bold w-full"> <span
+                                class="text-xxs ml-1">GR</span>
+                        </div>
+                    </div>
+
+                    <!-- P. Neto (28%) -->
+                    <div class="py-0.5 px-1 bg-gray-100 relative" style="width: 28%;">
+                        <div class="font-bold text-xxs">P. NETO</div>
+                        <div class="flex justify-center items-center">
+                            <input type="text" data-id="w-net" value="" class="text-center font-bold w-full"> <span
+                                class="text-xxs ml-1">GR</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1952,11 +1997,17 @@
                     <div class="section-title">MATERIAL</div>
                     <div class="grid-12 text-xs items-center gap-1 mt-1">
                         <div class="span-4 field-label">Clase Material:</div>
-                        <div class="span-8"><input type="text" data-id="mat-class" value=""></div>
+                        <div class="span-8">
+                            <select data-id="mat-class" style="width: 100%;" onchange="calculateWeights()">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="MICROCORRUGADO">MICROCORRUGADO</option>
+                                <option value="PLEGADIZO">PLEGADIZO</option>
+                            </select>
+                        </div>
 
                         <div class="span-4 field-label">Tipo de papel:</div>
                         <div class="span-8">
-                            <select data-id="mat-paper" style="width: 100%;">
+                            <select data-id="mat-paper" style="width: 100%;" onchange="updateGrammageFromCaliper()">
                                 <option value="">-- Seleccionar --</option>
                                 <option value="CBR">CBR</option>
                                 <option value="PON">PON</option>
@@ -1970,19 +2021,36 @@
                         </div>
 
                         <div class="span-4 field-label">Area de pieza:</div>
-                        <div class="span-8"><input type="text" data-id="mat-area" value=""></div>
+                        <div class="span-8"><input type="text" data-id="mat-area" value="" oninput="calculateWeights()">
+                        </div>
                     </div>
 
                     <div class="grid-12 text-center mt-2 border-t border-gray-300 pt-1 text-xs">
                         <div class="span-4 border-r border-gray-300">
                             <div class="font-bold text-xxs">Calibre</div>
-                            <select data-id="caliper" style="width: 100%;" class="text-center" disabled>
+                            <select data-id="caliper" style="width: 100%;" class="text-center"
+                                onchange="updateGrammageFromCaliper()">
                                 <option value="">--</option>
+                                <option value="8">8</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="20">20</option>
+                                <option value="22">22</option>
+                                <option value="24">24</option>
+                                <option value="26">26</option>
+                                <option value="28">28</option>
+                                <option value="30">30</option>
                             </select>
                         </div>
                         <div class="span-4 border-r border-gray-300">
                             <div class="font-bold text-xxs">Gramaje</div>
-                            <input type="text" data-id="gsm" value="" class="text-center">
+                            <input type="text" data-id="gsm" value="" class="text-center" oninput="calculateWeights()">
                         </div>
                         <div class="span-4">
                             <div class="font-bold text-xxs">Flauta</div>
@@ -2005,7 +2073,8 @@
                         <div class="span-12 grid-12 gap-1 mt-1">
                             <div class="span-4 text-center">
                                 <span class="text-xxs font-bold">L. Interior</span>
-                                <input type="text" data-id="l-int" value="" class="text-center">
+                                <input type="text" data-id="l-int" value="" class="text-center"
+                                    oninput="calculateWeights()">
                             </div>
                             <div class="span-4 text-center">
                                 <span class="text-xxs font-bold">Medium</span>
@@ -2146,12 +2215,13 @@
                             <div class="font-bold text-center bg-gray-100">Dimensión de la hoja (mm)</div>
                             <div class="flex justify-center gap-3 mt-1 items-center">
                                 <span>Hilo: <input type="text" data-id="dim-grain" value=""
-                                        class="w-10 inline text-center border-b"></span>
+                                        class="w-10 inline text-center border-b" oninput="calculateWeights()"></span>
                                 <span>Contra: <input type="text" data-id="dim-cross" value=""
-                                        class="w-10 inline text-center border-b"></span>
+                                        class="w-10 inline text-center border-b" oninput="calculateWeights()"></span>
                                 <span class="border-l border-gray-300 pl-3"><strong>Piezas/Hoja:</strong> <input
                                         type="text" data-id="pcs-sheet" value=""
-                                        class="w-12 inline text-center border-b font-bold text-lg"></span>
+                                        class="w-12 inline text-center border-b font-bold text-lg"
+                                        oninput="calculateWeights()"></span>
                             </div>
                         </div>
                     </div>
@@ -2206,6 +2276,17 @@
                                 <option>ExpertFold</option>
                                 <option>Diana</option>
                                 <option>Amazon</option>
+                            </select>
+                        </div>
+
+                        <div class="span-6 field-label">Flauta:</div>
+                        <div class="span-8">
+                            <select data-id="flute" style="width: 100%;" onchange="calculateWeights()">
+                                <option value="">--</option>
+                                <option value="Flauta B">Flauta B</option>
+                                <option value="Flauta C">Flauta C</option>
+                                <option value="Flauta E">Flauta E</option>
+                                <option value="Flauta BC">Flauta BC</option>
                             </select>
                         </div>
 
@@ -2545,7 +2626,7 @@
                     </label>
                 </div>
 
-                <div class="text-right font-bold text-xs mt-1">54 PALLETS</div>
+                <div class="text-right font-bold text-xs mt-1">PALLETS</div>
                 <div class="border-all relative group" style="height: 100px; display: flex; flex-direction: column;">
                     <!-- Zoom Control -->
                     <div class="zoom-control no-print">
@@ -3145,13 +3226,24 @@
             automaticBottomCompensation: 0.3,
             foldingCartonGrammage: {
                 'EPL_PONDEROSA': { 8: 0, 10: 0, 11: 220, 12: 240, 14: 280, 16: 320, 18: 360, 20: 395, 22: 430, 24: 465, 26: 500, 28: 515 },
-                'CNK_WRK': { 12: 264, 14: 293, 15: 317, 16: 332, 17: 347, 18: 361, 20: 391, 22: 420, 24: 454, 26: 488, 28: 522, 30: 557 }
+                'CNK_WRK': { 12: 264, 14: 293, 15: 317, 16: 332, 17: 347, 18: 361, 20: 391, 22: 420, 24: 454, 26: 488, 28: 522, 30: 557 },
+                'SBS/Printkote': { 10: 202, 12: 227, 14: 255, 16: 284, 18: 311, 20: 345, 22: 379, 24: 407, 26: 435, 28: 462 }
             }
         };
 
         // Global variables - load from localStorage or use defaults
         let PROCESS_MACHINES = JSON.parse(localStorage.getItem('printOptimizerSettings_v3') || 'null')?.machines || JSON.parse(JSON.stringify(DEFAULT_PROCESS_MACHINES));
         let GENERAL_SETTINGS = JSON.parse(localStorage.getItem('printOptimizerSettings_v3') || 'null')?.general || JSON.parse(JSON.stringify(DEFAULT_GENERAL_SETTINGS));
+
+        // FORCE UPDATE: Merge default foldingCartonGrammage into loaded settings to ensure new weights (SBS) are available
+        if (!GENERAL_SETTINGS.foldingCartonGrammage['SBS/Printkote']) {
+            GENERAL_SETTINGS.foldingCartonGrammage = {
+                ...GENERAL_SETTINGS.foldingCartonGrammage,
+                ...DEFAULT_GENERAL_SETTINGS.foldingCartonGrammage
+            };
+            console.log('Updated GENERAL_SETTINGS with new foldingCartonGrammage defaults');
+        }
+
         let PALLETIZING_SETTINGS = JSON.parse(localStorage.getItem('printOptimizerSettings_v3') || 'null')?.palletizing || { standardPalletHeightCm: 150, pallets: [{ name: '40x48', width: 40, height: 48 }, { name: '48x40', width: 48, height: 40 }] };
         let COLLECTIVE_BOXES = JSON.parse(localStorage.getItem('COLLECTIVE_BOXES') || '[]');
 
@@ -3185,6 +3277,147 @@
             };
             matClassSelect.addEventListener('change', toggleFields);
             toggleFields(); // Initial check
+        }
+
+        /**
+         * Calculates weights based on Material Class
+         * Triggered by: mat-class change, gsm input, and component inputs
+         */
+        function calculateWeights() {
+            const getVal = (id) => {
+                const el = document.querySelector(`[data-id="${id}"]`);
+                return el ? (parseFloat(el.value) || 0) : 0;
+            };
+
+            const setVal = (id, val) => {
+                const el = document.querySelector(`[data-id="${id}"]`);
+                if (el) {
+                    el.value = val.toFixed(2);
+                    // el.dispatchEvent(new Event('input')); // Avoid infinite loops if not needed
+                }
+            };
+
+            // 1. Calculate Sheet Area from Dimensions (if changed)
+            const dimGrain = getVal('dim-grain');
+            const dimCross = getVal('dim-cross');
+            let areaTotal = getVal('area-total');
+
+            // Auto-update Area Total if dimensions are present
+            if (dimGrain > 0 && dimCross > 0) {
+                areaTotal = (dimGrain * dimCross) / 1000000;
+                setVal('area-total', areaTotal);
+            }
+
+            const matClass = document.querySelector('[data-id="mat-class"]')?.value?.toUpperCase() || '';
+            const areaPiece = getVal('mat-area');
+
+            let totalGsm = 0;
+
+            if (matClass === 'PLEGADIZO') {
+                // Plegadizo: Weight = GSM * Area
+                const gsm = getVal('gsm');
+                totalGsm = gsm;
+            } else if (matClass === 'MICROCORRUGADO') {
+                // Micro: Sum components + Adhesive
+                const linerExt = getVal('l-ext');
+                const medium = getVal('medium');
+                const linerInt = getVal('l-int');
+
+                // Get Flute Factor
+                const flute = document.querySelector('[data-id="flute"]')?.value || '';
+                let factor = 1.0;
+                if (GENERAL_SETTINGS.mediumFactors[flute]) {
+                    factor = GENERAL_SETTINGS.mediumFactors[flute];
+                } else if (flute.includes('E')) factor = 1.32;
+                else if (flute.includes('B')) factor = 1.35;
+                else if (flute.includes('C')) factor = 1.48;
+
+                // Get Adhesive
+                const adhesive = GENERAL_SETTINGS.adhesives?.starch || 18;
+
+                // Components Sum
+                totalGsm = linerExt + (medium * factor) + linerInt + adhesive;
+
+                // Update GSM field for visibility
+                setVal('gsm', totalGsm);
+            } else {
+                // Fallback
+                totalGsm = getVal('gsm');
+            }
+
+            // --- WEIGHT CALCULATIONS (Grams) ---
+
+            if (matClass === 'PLEGADIZO') {
+                // PLEGADIZO LOGIC: COMPLETELY DECOUPLED
+
+                // 1. Net Weight (Peso Neto) = Piece Area * GSM
+                // ONLY calculate if Piece Area is present
+                if (areaPiece > 0 && totalGsm > 0) {
+                    const weightNet = totalGsm * areaPiece;
+                    setVal('w-net', weightNet);
+                }
+
+                // 2. Gross Weight (Peso Bruto) = (Sheet Area * GSM) / Outs
+                // ONLY calculate if Sheet Area AND Outs are present
+                const outs = getVal('pcs-sheet');
+                if (areaTotal > 0 && outs > 0 && totalGsm > 0) {
+                    const weightGross = (totalGsm * areaTotal) / outs;
+                    setVal('w-gross', weightGross);
+                }
+            } else {
+                // MICROCORRUGADO / DEFAULT LOGIC
+                // Standard behavior: Weight = Total Area * GSM
+                // Usually Net = Gross unless specified
+                if (areaTotal > 0 && totalGsm > 0) {
+                    const weightGross = totalGsm * areaTotal;
+                    setVal('w-gross', weightGross);
+                    setVal('w-net', weightGross);
+                }
+            }
+        }
+
+        /**
+         * Updates GSM field based on selected Paper Type and Caliper
+         * Uses GENERAL_SETTINGS.foldingCartonGrammage
+         */
+        function updateGrammageFromCaliper() {
+            const matClass = document.querySelector('[data-id="mat-class"]')?.value;
+            if (matClass !== 'PLEGADIZO') return;
+
+            const paperType = document.querySelector('[data-id="mat-paper"]')?.value || '';
+            const caliper = document.querySelector('[data-id="caliper"]')?.value || '';
+            const gsmInput = document.querySelector('[data-id="gsm"]');
+
+            console.log('updateGrammageFromCaliper', { matClass, paperType, caliper }); // DEBUG
+
+            if (!paperType || !caliper || !gsmInput) return;
+
+            // Map paper type to config keys
+            let dbKey = null;
+            const p = paperType.toUpperCase();
+
+            if (p.includes('PONDEROSA') || p.includes('EPL') || p === 'PON' || p === 'CMPC') dbKey = 'EPL_PONDEROSA';
+            else if (p.includes('WRK') || p.includes('CNK') || p.includes('CARRIER')) dbKey = 'CNK_WRK';
+            else if (p.includes('SBS') || p.includes('PRINTKOTE')) dbKey = 'SBS/Printkote';
+
+            // Direct match check
+            if (!dbKey) {
+                const keys = Object.keys(GENERAL_SETTINGS.foldingCartonGrammage);
+                dbKey = keys.find(k => k.toUpperCase() === p) || null;
+            }
+
+            if (dbKey && GENERAL_SETTINGS.foldingCartonGrammage[dbKey]) {
+                const mapping = GENERAL_SETTINGS.foldingCartonGrammage[dbKey];
+                const gsm = mapping[caliper];
+                if (gsm) {
+                    gsmInput.value = gsm;
+                    gsmInput.dispatchEvent(new Event('input')); // Trigger calculation
+
+                    // Visual feedback
+                    gsmInput.style.backgroundColor = '#e6fffa';
+                    setTimeout(() => gsmInput.style.backgroundColor = '', 500);
+                }
+            }
         }
 
         function closeMagicModal() {
@@ -10972,9 +11205,119 @@
         });
     </script>
 
+    <!-- HISTORY MODAL -->
+    <div id="history-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[3000]">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-6xl flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                <h2 class="text-xl font-bold text-gray-800">Historial de Hojas Maestras</h2>
+                <button onclick="historialController.hideHistoryModal()"
+                    class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b bg-gray-100">
+                <button onclick="historialController.switchHistoryTab('SAP')" id="tab-sap"
+                    class="flex-1 py-3 px-4 text-center font-bold text-gray-600 hover:bg-white hover:text-blue-600 transition-colors border-b-2 border-transparent">
+                    SAP
+                </button>
+                <button onclick="historialController.switchHistoryTab('FAC')" id="tab-fac"
+                    class="flex-1 py-3 px-4 text-center font-bold text-gray-600 hover:bg-white hover:text-blue-600 transition-colors border-b-2 border-transparent">
+                    Factibilidad (FAC)
+                </button>
+                <button onclick="historialController.switchHistoryTab('MAQ')" id="tab-maq"
+                    class="flex-1 py-3 px-4 text-center font-bold text-gray-600 hover:bg-white hover:text-blue-600 transition-colors border-b-2 border-transparent">
+                    Maquila (MAQ)
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="p-4 flex-1 overflow-auto bg-gray-50">
+                <!-- SAP Table -->
+                <div id="history-sap" class="history-tab-content hidden">
+                    <div class="text-center text-gray-500 py-8">Cargando historial SAP...</div>
+                </div>
+
+                <!-- FAC Table -->
+                <div id="history-fac" class="history-tab-content hidden">
+                    <div class="text-center text-gray-500 py-8">Cargando historial FAC...</div>
+                </div>
+
+                <!-- MAQ Table -->
+                <div id="history-maq" class="history-tab-content hidden">
+                    <div class="text-center text-gray-500 py-8">Cargando historial Maquila...</div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t bg-white rounded-b-lg flex justify-end">
+                <button onclick="historialController.hideHistoryModal()"
+                    class="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- DATA & CONTROLLERS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="data-manager.js"></script>
     <script src="historial-controller.js"></script>
+    <script src="pdf-importer.js"></script>
+    <script>
+        // Init MTY1 Importer
+        // NOW GLOBAL
+        window.mty1Importer = null;
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing MTY1 Importer...');
+            window.mty1Importer = new MTY1Importer();
+
+            const fileInput = document.getElementById('mty1-upload');
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => window.mty1Importer.handleFile(e));
+            }
+        });
+
+        // =====================================================
+        // PRINT FIX: Resetear zoom/pan de imágenes al imprimir
+        // =====================================================
+        const _printImageStates = [];
+
+        window.addEventListener('beforeprint', function () {
+            _printImageStates.length = 0;
+            // Resetear todos los <img> dentro de .upload-area
+            document.querySelectorAll('.upload-area img').forEach(function (img) {
+                _printImageStates.push({
+                    img: img,
+                    transform: img.style.transform,
+                    maxWidth: img.style.maxWidth,
+                    maxHeight: img.style.maxHeight,
+                    width: img.style.width,
+                    height: img.style.height,
+                    position: img.style.position
+                });
+                img.style.transform = 'none';
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '100%';
+                img.style.width = 'auto';
+                img.style.height = 'auto';
+                img.style.position = 'static';
+            });
+        });
+
+        window.addEventListener('afterprint', function () {
+            // Restaurar estado original de las imágenes
+            _printImageStates.forEach(function (state) {
+                state.img.style.transform = state.transform;
+                state.img.style.maxWidth = state.maxWidth;
+                state.img.style.maxHeight = state.maxHeight;
+                state.img.style.width = state.width;
+                state.img.style.height = state.height;
+                state.img.style.position = state.position;
+            });
+            _printImageStates.length = 0;
+        });
+    </script>
 </body>
 
 </html>
