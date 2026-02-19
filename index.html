@@ -1051,6 +1051,12 @@
     <!-- SIDEBAR CONTROLS -->
     <div id="sidebar" class="no-print">
 
+        <!-- Volver a Inicio - First item -->
+        <div class="sidebar-item" onclick="location.reload()">
+            <div class="sidebar-icon icon-gray">🏠</div>
+            <div class="sidebar-content">Volver a Inicio</div>
+        </div>
+
         <!-- Main Actions -->
         <div class="sidebar-item" id="btn-nueva-hoja">
             <div class="sidebar-icon icon-blue">➕</div>
@@ -1072,30 +1078,15 @@
                 <div class="sidebar-content">Guardar</div>
             </div>
 
-            <div class="sidebar-item" id="btn-save-as-hoja">
-                <div class="sidebar-icon icon-indigo">📋</div>
-                <div class="sidebar-content">Guardar como...</div>
-            </div>
-
             <div class="sidebar-item" id="btn-export-excel">
                 <div class="sidebar-icon icon-green">📤</div>
                 <div class="sidebar-content">Exportar Excel</div>
-            </div>
-
-            <div class="sidebar-item" id="btn-cancel-edit">
-                <div class="sidebar-icon icon-red">❌</div>
-                <div class="sidebar-content">Cancelar</div>
             </div>
         </div>
 
         <div class="sidebar-item" onclick="window.print()">
             <div class="sidebar-icon icon-gray">🖨️</div>
             <div class="sidebar-content">Imprimir / PDF</div>
-        </div>
-
-        <div class="sidebar-item" onclick="location.reload()">
-            <div class="sidebar-icon icon-gray">🏠</div>
-            <div class="sidebar-content">Volver a Inicio</div>
         </div>
 
         <!-- Spacer -->
@@ -1115,19 +1106,6 @@
             <!-- Hidden Input -->
             <input type="file" id="excelInput" accept=".xlsx, .xls" style="display: none;">
         </div>
-
-        <!-- Assets Folder -->
-        <div class="sidebar-item" onclick="document.getElementById('folderInput').click()">
-            <div class="sidebar-icon icon-cyan">📂</div>
-            <div class="sidebar-content">
-                Activos (Imágenes)
-                <div id="folderStatus" style="font-size: 10px; color: #8e8e93; margin-top: 2px; font-weight: 400;">Sin
-                    carpeta seleccionada</div>
-            </div>
-            <!-- Hidden Input -->
-            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
-        </div>
-
 
         <!-- Footer -->
         <div
@@ -2877,29 +2855,36 @@
         // --- 1.5 Auto-Carga de Imágenes desde Carpeta Local ---
         let assetFilesIndex = {}; // Mapa: nombre_archivo_lower -> File Object
 
-        document.getElementById('folderInput').addEventListener('change', function (e) {
-            const files = e.target.files;
-            assetFilesIndex = {};
-            let count = 0;
+        const _folderInputEl = document.getElementById('folderInput');
+        if (_folderInputEl) {
+            _folderInputEl.addEventListener('change', function (e) {
+                const files = e.target.files;
+                assetFilesIndex = {};
+                let count = 0;
 
-            if (files.length > 0) {
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    // Guardamos el nombre en minúsculas para búsqueda insensible a mayúsculas
-                    assetFilesIndex[file.name.toLowerCase()] = file;
-                    count++;
+                if (files.length > 0) {
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        assetFilesIndex[file.name.toLowerCase()] = file;
+                        count++;
+                    }
+                    const folderStatusEl = document.getElementById('folderStatus');
+                    if (folderStatusEl) {
+                        folderStatusEl.innerText = `✅ ${count} archivos indexados. Listo para buscar.`;
+                        folderStatusEl.style.color = 'green';
+                    }
+
+                    const currentSap = document.querySelector('input[data-id="sap-1"]').value;
+                    if (currentSap) searchAndLoadAssets(currentSap);
+                } else {
+                    const folderStatusEl = document.getElementById('folderStatus');
+                    if (folderStatusEl) {
+                        folderStatusEl.innerText = "Ninguna carpeta seleccionada";
+                        folderStatusEl.style.color = '#666';
+                    }
                 }
-                document.getElementById('folderStatus').innerText = `✅ ${count} archivos indexados. Listo para buscar.`;
-                document.getElementById('folderStatus').style.color = 'green';
-
-                // Intentar buscar inmediatamente si ya hay un SAP puesto
-                const currentSap = document.querySelector('input[data-id="sap-1"]').value;
-                if (currentSap) searchAndLoadAssets(currentSap);
-            } else {
-                document.getElementById('folderStatus').innerText = "Ninguna carpeta seleccionada";
-                document.getElementById('folderStatus').style.color = '#666';
-            }
-        });
+            });
+        }
 
         // --- 1.6 Carga de Datos desde Excel ---
         let excelDataIndex = {}; // Mapa: SAP (string) -> Row Object
